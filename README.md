@@ -1,15 +1,15 @@
-# Firecrawl TypingMind Plugins
+# Firecrawl TypingMind Plugin
 
 **English** | [繁體中文](README.zh-TW.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Two [TypingMind](https://www.typingmind.com) plugins that give your LLM **web search** and **page scraping** powers via [Firecrawl](https://www.firecrawl.dev/).
+A single [TypingMind](https://www.typingmind.com) plugin that gives your LLM **web search** and **page scraping** powers via [Firecrawl](https://www.firecrawl.dev/), exposed as two function calls sharing one set of credentials.
 
-| Plugin | What it does |
+| Function | What it does |
 |---|---|
-| **Firecrawl Web Search** | Search the web and return cleaned markdown of the top N results |
-| **Firecrawl Scrape URL** | Fetch a specific URL and return its main content as markdown |
+| `firecrawl_web_search` | Search the web and return cleaned markdown of the top N results |
+| `firecrawl_scrape_url` | Fetch a specific URL and return its main content as markdown |
 
 Works with both **Firecrawl Cloud** (`api.firecrawl.dev`) and a **self-hosted** Firecrawl deployment.
 
@@ -24,46 +24,32 @@ Works with both **Firecrawl Cloud** (`api.firecrawl.dev`) and a **self-hosted** 
 
 ---
 
-## Quick install (via jsDelivr)
+## Install
 
-This repo is public, so [jsDelivr](https://www.jsdelivr.com/) serves the plugin JSON over a CDN with `Access-Control-Allow-Origin: *` — TypingMind can fetch it directly.
+This repo follows TypingMind's [GitHub-share convention](https://docs.typingmind.com/plugins/share-import-plugins): one plugin per repo, with `plugin.json` + `implementation.js` + `README.md` at the repo root.
 
-1. In TypingMind: **Settings → Plugins → Add Plugin → Load from URL**
-2. Paste these URLs, one at a time:
+1. In TypingMind: **Settings → Plugins → Add Plugin → Import from GitHub**
+2. Paste the repo URL:
 
-   **Web Search:**
    ```
-   https://cdn.jsdelivr.net/gh/weiting-tw/typingmind-firecrawl@main/plugins/firecrawl_web_search.json
-   ```
-
-   **Scrape URL:**
-   ```
-   https://cdn.jsdelivr.net/gh/weiting-tw/typingmind-firecrawl@main/plugins/firecrawl_scrape_url.json
+   https://github.com/weiting-tw/typingmind-firecrawl
    ```
 
-3. After import, open each plugin's settings and fill:
+3. After import, open the plugin's settings and fill:
    - **Firecrawl Base URL** — `https://api.firecrawl.dev` for cloud, or your self-hosted URL
    - **Firecrawl API Key** — your `fc-...` cloud key, or the Bearer token your self-hosted gateway expects
 
-4. In a chat session, open the plugin sidebar and **enable** both plugins for that conversation.
+4. In a chat session, open the plugin sidebar and **enable** the plugin — both `firecrawl_web_search` and `firecrawl_scrape_url` become available together.
 
-> Pin to a specific version by replacing `@main` with a tag (`@v1.0.0`) or commit hash (`@a1b2c3d`).
+> Pin to a specific version by appending `@<tag>` or `@<sha>` to the URL — e.g. `https://github.com/weiting-tw/typingmind-firecrawl@v1.0.0` (depending on TypingMind version's support).
 
----
+### Manual install (paste JSON)
 
-## Manual install (paste JSON)
+If GitHub import isn't available, paste the JSON directly:
 
-If you can't or don't want to use jsDelivr (e.g. corporate firewall blocks the CDN, or you're working from a fork that's still private), paste the JSON directly:
-
-1. Grab the JSON for each plugin:
-   - [`plugins/firecrawl_web_search.json`](plugins/firecrawl_web_search.json)
-   - [`plugins/firecrawl_scrape_url.json`](plugins/firecrawl_scrape_url.json)
-
-   Either clone this repo or open each file on GitHub and copy its raw contents.
-
-2. In TypingMind: **Settings → Plugins → Add Plugin**, then choose the **Import / Paste JSON** option (the exact label varies by TypingMind version). Paste and save. Repeat for the second plugin.
-
-3. Configure and enable as in steps 3–4 of the quick install.
+1. Grab [`plugin.json`](plugin.json) — clone this repo, or open the file on GitHub and copy its raw contents.
+2. In TypingMind: **Settings → Plugins → Add Plugin → Import / Paste JSON** (the exact label varies by TypingMind version). Paste and save.
+3. Configure and enable as in steps 3–4 above.
 
 ---
 
@@ -72,7 +58,7 @@ If you can't or don't want to use jsDelivr (e.g. corporate firewall blocks the C
 ### A. Cloud (easiest)
 
 1. Sign up at [firecrawl.dev](https://www.firecrawl.dev/) and copy your `fc-...` API key.
-2. In each plugin's settings:
+2. In the plugin's settings:
    - Base URL: `https://api.firecrawl.dev` (default)
    - API Key: `fc-...`
 3. Done.
@@ -84,7 +70,7 @@ If you can't or don't want to use jsDelivr (e.g. corporate firewall blocks the C
 3. Configure the plugin:
    - Base URL: `https://firecrawl.your-domain.com`
    - API Key: whatever Bearer token your gateway expects.
-4. **Make sure your gateway returns CORS headers** — the plugins run in TypingMind's browser context. Minimum:
+4. **Make sure your gateway returns CORS headers** — the plugin runs in TypingMind's browser context. Minimum:
    ```
    Access-Control-Allow-Origin: https://www.typingmind.com   (or echo Origin)
    Access-Control-Allow-Headers: Authorization, Content-Type
@@ -96,13 +82,15 @@ If you can't or don't want to use jsDelivr (e.g. corporate firewall blocks the C
 
 ## Plugin settings reference
 
-| Setting | Type | Default | Description |
-|---|---|---|---|
-| `baseUrl` | text | `https://api.firecrawl.dev` | Firecrawl API endpoint root |
-| `apiKey` | password | _(required)_ | `fc-...` cloud key, or self-hosted gateway token |
-| `onlyMainContent` | enum (`true` / `false`) | `true` | Strip nav, footer, ads |
-| `maxCharsPerResult` (search) | number | `4000` | Per-result markdown char cap |
-| `maxChars` (scrape) | number | `12000` | Total markdown char cap |
+One set of settings is shared by both functions:
+
+| Setting | Type | Default | Used by | Description |
+|---|---|---|---|---|
+| `baseUrl` | text | `https://api.firecrawl.dev` | both | Firecrawl API endpoint root |
+| `apiKey` | password | _(required)_ | both | `fc-...` cloud key, or self-hosted gateway token |
+| `onlyMainContent` | enum (`true` / `false`) | `true` | both | Strip nav, footer, ads |
+| `maxCharsPerResult` | number | `4000` | search | Per-result markdown char cap |
+| `maxChars` | number | `12000` | scrape | Total scraped markdown char cap |
 
 ---
 
@@ -117,7 +105,7 @@ When a function-calling-capable model decides a search or fetch would help, it a
   → POST `${baseUrl}/v2/scrape`
   → Returns the page's main content as markdown
 
-Markdown is trimmed at the character limits in each plugin's settings to keep token usage in check.
+Markdown is trimmed at the character limits in the plugin's settings to keep token usage in check.
 
 ---
 
@@ -137,24 +125,25 @@ Markdown is trimmed at the character limits in each plugin's settings to keep to
 
 ## Development
 
-The plugins are plain JSON with embedded JavaScript. To modify:
+`plugin.json` is what TypingMind actually loads — its `pluginFunctions[].code` strings are the runtime source of truth. `implementation.js` is a sibling source mirror for editor support (lint, syntax highlighting, formatter); when you edit one, **mirror the change to the other** before committing.
 
-1. Edit the file under [`plugins/`](plugins/).
-2. Commit and push. The `@main` jsDelivr URL picks up the new version once the CDN cache refreshes (usually a few minutes).
-3. In TypingMind, delete the existing plugin and re-import — either reload from the same jsDelivr URL or paste the updated JSON.
+To modify:
 
-For production stability, pin TypingMind to a tag or commit hash (`@v1.0.0`, `@<sha>`) instead of `@main` so it doesn't auto-update.
+1. Edit both [`implementation.js`](implementation.js) and the matching `code` string inside [`plugin.json`](plugin.json), keeping them identical.
+2. Commit and push.
+3. In TypingMind, delete the existing plugin and re-import from the GitHub URL.
+
+For production stability, pin TypingMind to a tag or commit hash so it doesn't auto-update.
 
 ### File structure
 
 ```
 typingmind-firecrawl/
-├── README.md
-├── README.zh-TW.md
+├── plugin.json          # metadata + pluginFunctions (with inline code)
+├── implementation.js    # source mirror of the inline code
+├── README.md            # plugin overview (this file, also serves as repo doc)
+├── README.zh-TW.md      # 繁體中文翻譯
 ├── LICENSE
-├── plugins/
-│   ├── firecrawl_web_search.json
-│   └── firecrawl_scrape_url.json
 └── docs/
     └── caddy-example.md
 ```

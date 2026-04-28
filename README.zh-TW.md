@@ -1,15 +1,15 @@
-# Firecrawl TypingMind Plugins
+# Firecrawl TypingMind Plugin
 
 [English](README.md) | **繁體中文**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-兩個 [TypingMind](https://www.typingmind.com) plugins，讓你的 LLM 透過 [Firecrawl](https://www.firecrawl.dev/) 取得 **網頁搜尋** 與 **網頁抓取** 能力。
+一個 [TypingMind](https://www.typingmind.com) plugin，透過 [Firecrawl](https://www.firecrawl.dev/) 同時提供 **網頁搜尋** 與 **網頁抓取** 兩個 function call，共用同一組設定。
 
-| Plugin | 用途 |
+| Function | 用途 |
 |---|---|
-| **Firecrawl Web Search** | 搜尋網路，回傳前 N 筆結果的乾淨 markdown |
-| **Firecrawl Scrape URL** | 抓取指定網址，回傳該頁主要內容（markdown 格式）|
+| `firecrawl_web_search` | 搜尋網路，回傳前 N 筆結果的乾淨 markdown |
+| `firecrawl_scrape_url` | 抓取指定網址，回傳該頁主要內容（markdown 格式）|
 
 同時支援 **Firecrawl Cloud**（`api.firecrawl.dev`）與**自建（self-hosted）** Firecrawl。
 
@@ -24,46 +24,32 @@
 
 ---
 
-## 快速安裝（透過 jsDelivr）
+## 安裝
 
-本 repo 是 public，[jsDelivr](https://www.jsdelivr.com/) 會把 plugin JSON 透過 CDN 提供，並自動加上 `Access-Control-Allow-Origin: *`，TypingMind 可以直接抓。
+本 repo 遵循 TypingMind [GitHub 分享規範](https://docs.typingmind.com/plugins/share-import-plugins)：一個 repo 一個 plugin，repo 根目錄含 `plugin.json` + `implementation.js` + `README.md`。
 
-1. 在 TypingMind：**Settings → Plugins → Add Plugin → Load from URL**
-2. 一次貼一條（共兩個 plugin）：
+1. 在 TypingMind：**Settings → Plugins → Add Plugin → Import from GitHub**
+2. 貼這個 repo URL：
 
-   **Web Search：**
    ```
-   https://cdn.jsdelivr.net/gh/weiting-tw/typingmind-firecrawl@main/plugins/firecrawl_web_search.json
-   ```
-
-   **Scrape URL：**
-   ```
-   https://cdn.jsdelivr.net/gh/weiting-tw/typingmind-firecrawl@main/plugins/firecrawl_scrape_url.json
+   https://github.com/weiting-tw/typingmind-firecrawl
    ```
 
-3. 匯入後，點開每個 plugin 的設定，填：
+3. 匯入後，點開 plugin 設定，填：
    - **Firecrawl Base URL** — Cloud 用 `https://api.firecrawl.dev`，self-hosted 用你自己的網址。
    - **Firecrawl API Key** — `fc-...` cloud key，或自建 gateway 的 Bearer token。
 
-4. 在聊天視窗點 plugin sidebar，把這兩個 plugin **enable** 起來。
+4. 在聊天視窗點 plugin sidebar，把這個 plugin **enable** 起來 —— `firecrawl_web_search` 跟 `firecrawl_scrape_url` 兩個 function 會一起啟用。
 
-> 想要鎖在固定版本？把 `@main` 改成 tag（`@v1.0.0`）或 commit hash（`@a1b2c3d`）即可。
+> 想要鎖在固定版本？URL 後面接 `@<tag>` 或 `@<sha>`，例：`https://github.com/weiting-tw/typingmind-firecrawl@v1.0.0`（依 TypingMind 版本而定）。
 
----
+### 手動安裝（直接貼 JSON）
 
-## 手動安裝（直接貼 JSON）
+若 GitHub import 不可用，可改用直接貼 JSON：
 
-如果不想走 jsDelivr（例如：公司網路擋 CDN、你 fork 出去的 repo 還是 private 等），可以直接把 JSON 內容貼進 TypingMind：
-
-1. 取得兩個 plugin 的 JSON：
-   - [`plugins/firecrawl_web_search.json`](plugins/firecrawl_web_search.json)
-   - [`plugins/firecrawl_scrape_url.json`](plugins/firecrawl_scrape_url.json)
-
-   clone 整個 repo，或在 GitHub 上開檔案點 raw 複製內容皆可。
-
-2. TypingMind：**Settings → Plugins → Add Plugin**，選擇 **Import / Paste JSON** 的選項（不同 TypingMind 版本字眼可能略有差異）。把整個 JSON 貼進去存檔，另一個 plugin 重複一次。
-
-3. 設定與啟用步驟同上面快速安裝的 3、4 步。
+1. 取得 [`plugin.json`](plugin.json) — clone 整個 repo，或在 GitHub 上開檔案點 raw 複製內容皆可。
+2. TypingMind：**Settings → Plugins → Add Plugin → Import / Paste JSON**（不同 TypingMind 版本字眼可能略有差異）。把整個 JSON 貼進去存檔。
+3. 設定與啟用步驟同上面安裝的 3、4 步。
 
 ---
 
@@ -72,7 +58,7 @@
 ### A. Cloud（最簡單）
 
 1. 到 [firecrawl.dev](https://www.firecrawl.dev/) 註冊，拿 `fc-...` API key。
-2. 兩個 plugin 設定都填：
+2. Plugin 設定填：
    - Base URL：`https://api.firecrawl.dev`（預設值）
    - API Key：`fc-...`
 3. 完成。
@@ -102,13 +88,15 @@
 
 ## 設定欄位說明
 
-| 欄位 | 型別 | 預設值 | 說明 |
-|---|---|---|---|
-| `baseUrl` | text | `https://api.firecrawl.dev` | Firecrawl API endpoint 根網址 |
-| `apiKey` | password | _(必填)_ | `fc-...` cloud key 或 self-hosted gateway token |
-| `onlyMainContent` | enum (`true` / `false`) | `true` | 是否去除導覽列、頁尾、廣告等雜訊 |
-| `maxCharsPerResult`（search） | number | `4000` | 每筆搜尋結果的 markdown 字元上限 |
-| `maxChars`（scrape） | number | `12000` | 單頁抓取的 markdown 字元上限 |
+兩個 function 共用一組設定：
+
+| 欄位 | 型別 | 預設值 | 用於 | 說明 |
+|---|---|---|---|---|
+| `baseUrl` | text | `https://api.firecrawl.dev` | 兩者 | Firecrawl API endpoint 根網址 |
+| `apiKey` | password | _(必填)_ | 兩者 | `fc-...` cloud key 或 self-hosted gateway token |
+| `onlyMainContent` | enum (`true` / `false`) | `true` | 兩者 | 是否去除導覽列、頁尾、廣告等雜訊 |
+| `maxCharsPerResult` | number | `4000` | search | 每筆搜尋結果的 markdown 字元上限 |
+| `maxChars` | number | `12000` | scrape | 單頁抓取的 markdown 字元上限 |
 
 ---
 
@@ -123,7 +111,7 @@
   → POST `${baseUrl}/v2/scrape`
   → 回傳該頁主要內容（markdown）
 
-回傳的 markdown 會被截斷在每個 plugin 設定的字元上限，避免 token 用量爆掉。
+回傳的 markdown 會被截斷在 plugin 設定的字元上限，避免 token 用量爆掉。
 
 ---
 
@@ -143,24 +131,25 @@
 
 ## 開發
 
-兩個 plugin 都是純 JSON 加上內嵌的 JavaScript。要修改：
+`plugin.json` 才是 TypingMind 實際載入並執行的檔案 —— `pluginFunctions[].code` 字串才是真正的 runtime source of truth。`implementation.js` 是給編輯器看的鏡像（lint、語法高亮、formatter 才能正確運作），**改其中一邊時要同步改另一邊**再 commit。
 
-1. 編輯 [`plugins/`](plugins/) 底下的 JSON 檔。
-2. Commit、push。`@main` 的 jsDelivr URL 會在 CDN cache 更新後（通常幾分鐘）自動跟到新版。
-3. 在 TypingMind 把舊 plugin 刪掉，重新從同一個 jsDelivr URL 載入，或手動貼新的 JSON。
+要修改：
 
-要追求穩定，TypingMind 那邊可以釘版本（`@v1.0.0` 或 `@<sha>`）而不要用 `@main`，避免 plugin 自己改版。
+1. 同時編輯 [`implementation.js`](implementation.js) 跟 [`plugin.json`](plugin.json) 內對應的 `code` 字串，兩邊保持一致。
+2. Commit、push。
+3. 在 TypingMind 把舊 plugin 刪掉，重新從 GitHub URL 載入。
+
+要追求穩定，TypingMind 那邊可以釘版本（tag 或 commit hash），避免 plugin 自己改版。
 
 ### 檔案結構
 
 ```
 typingmind-firecrawl/
-├── README.md
-├── README.zh-TW.md
+├── plugin.json          # metadata + pluginFunctions（含 inline code）
+├── implementation.js    # inline code 的源檔鏡像
+├── README.md            # plugin overview（也兼 repo 說明）
+├── README.zh-TW.md      # 繁體中文翻譯（本檔）
 ├── LICENSE
-├── plugins/
-│   ├── firecrawl_web_search.json
-│   └── firecrawl_scrape_url.json
 └── docs/
     └── caddy-example.md
 ```
