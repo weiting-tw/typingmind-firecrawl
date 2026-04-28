@@ -1,0 +1,60 @@
+{
+  "uuid": "652fd7ec-9736-4dfa-9932-c89acfeefe17",
+  "id": "firecrawl_web_search",
+  "title": "Firecrawl Web Search",
+  "iconURL": "https://www.firecrawl.dev/favicon.ico",
+  "overviewMarkdown": "Search the web via [Firecrawl](https://firecrawl.dev) and return cleaned markdown of top results.\n\n## Setup\n\n1. Get an API key from [firecrawl.dev](https://firecrawl.dev) (cloud) **or** run your own [self-hosted Firecrawl](https://github.com/firecrawl/firecrawl).\n2. In this plugin's settings:\n   - **Base URL**: `https://api.firecrawl.dev` (cloud, default) or your self-hosted URL like `https://firecrawl.example.com`.\n   - **API Key**: your `fc-...` key from the cloud, or whatever Bearer token your self-hosted gateway expects.\n3. Enable the plugin in your chat session.\n\nWorks alongside `Firecrawl Scrape URL` for fetching specific pages.",
+  "openaiSpec": {
+    "name": "firecrawl_web_search",
+    "description": "Search the web for the given query and return cleaned markdown of the top results. Use this for any current-information question — news, prices, product comparisons, recent releases, anything that may have changed after your training data.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "The search query in the user's language. Be specific."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Number of results to fetch with content. Default 5, max 10.",
+          "default": 5
+        }
+      },
+      "required": ["query"]
+    }
+  },
+  "userSettings": [
+    {
+      "name": "baseUrl",
+      "label": "Firecrawl Base URL",
+      "type": "text",
+      "required": true,
+      "default": "https://api.firecrawl.dev",
+      "description": "`https://api.firecrawl.dev` for the cloud, or your own self-hosted URL.",
+      "placeholder": "https://api.firecrawl.dev"
+    },
+    {
+      "name": "apiKey",
+      "label": "Firecrawl API Key (Bearer)",
+      "type": "password",
+      "required": true,
+      "description": "Your `fc-...` cloud API key, or the Bearer token your self-hosted gateway expects."
+    },
+    {
+      "name": "onlyMainContent",
+      "label": "Only main content (strip nav/footer/ads)",
+      "type": "enum",
+      "values": ["true", "false"],
+      "default": "true",
+      "description": "Recommended: keep as true so the LLM gets the article body, not boilerplate."
+    },
+    {
+      "name": "maxCharsPerResult",
+      "label": "Max characters per result",
+      "type": "number",
+      "default": 4000,
+      "description": "Trim each result's markdown to this length to control token usage."
+    }
+  ],
+  "code": "async function firecrawl_web_search(params, userSettings) {\n  const { query, limit } = params;\n  const { baseUrl, apiKey, onlyMainContent, maxCharsPerResult } = userSettings;\n\n  if (!baseUrl || !apiKey) {\n    return 'Plugin not configured: baseUrl and apiKey are required.';\n  }\n  const trimmedBase = String(baseUrl).replace(/\\/+$/, '');\n  const url = `${trimmedBase}/v2/search`;\n\n  const body = {\n    query: query,\n    limit: Math.min(Math.max(limit || 5, 1), 10),\n    scrapeOptions: {\n      formats: ['markdown'],\n      onlyMainContent: String(onlyMainContent) !== 'false'\n    }\n  };\n\n  let res;\n  try {\n    res = await fetch(url, {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        'Authorization': `Bearer ${apiKey}`\n      },\n      body: JSON.stringify(body)\n    });\n  } catch (e) {\n    return `Firecrawl request failed: ${e.message}`;\n  }\n\n  if (!res.ok) {\n    const text = await res.text();\n    return `Firecrawl HTTP ${res.status}: ${text.slice(0, 300)}`;\n  }\n\n  let data;\n  try { data = await res.json(); } catch (e) {\n    return `Firecrawl returned non-JSON response.`;\n  }\n\n  const list =\n    (data && data.data && data.data.web) ||\n    (Array.isArray(data && data.data) ? data.data : null) ||\n    [];\n\n  if (!list.length) {\n    return `No results for: ${query}`;\n  }\n\n  const cap = Number(maxCharsPerResult) || 4000;\n  const chunks = list.map((item, i) => {\n    const title = item.title || item.url || `Result ${i + 1}`;\n    const src = item.url || '';\n    let md = item.markdown || item.description || '';\n    if (md.length > cap) md = md.slice(0, cap) + '\\n\\n…(truncated)…';\n    return `## [${i + 1}] ${title}\\nSource: ${src}\\n\\n${md}`;\n  });\n\n  return chunks.join('\\n\\n---\\n\\n');\n}\n"
+}
